@@ -13,11 +13,11 @@ export function displayJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-export function parseJsonValue(value: string): unknown {
+export function parseJsonValue(value: string, fallback?: unknown): unknown {
   try {
     return JSON.parse(value);
   } catch {
-    return value;
+    return fallback === undefined ? value : fallback;
   }
 }
 
