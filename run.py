@@ -174,6 +174,8 @@ def main() -> int:
             print(f"[start] backend stack in {backend_dir}", flush=True)
             env = os.environ.copy()
             env["BACKEND_PORT"] = str(backend_port)
+            if "CORS_ORIGINS" not in env:
+                env["CORS_ORIGINS"] = f"http://localhost:{frontend_port}"
             subprocess.run(
                 [*compose, "up", "--build", "-d"],
                 cwd=backend_dir,
