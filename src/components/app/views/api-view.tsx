@@ -36,7 +36,7 @@ export function ApiView() {
   }, [activeEnvironmentId]);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   async function rotate() {

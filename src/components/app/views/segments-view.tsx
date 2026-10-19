@@ -179,7 +179,7 @@ export function SegmentsView() {
   }, [activeProjectId]);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   async function create(event: FormEvent<HTMLFormElement>) {

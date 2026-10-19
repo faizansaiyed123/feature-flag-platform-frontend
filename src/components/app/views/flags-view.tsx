@@ -68,7 +68,7 @@ export function FlagsView() {
   }, [activeProjectId]);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   const activeState = useMemo(() => (flag: FeatureFlag) => flag.environment_states.find(s => s.environment_id === activeEnvironmentId), [activeEnvironmentId]);

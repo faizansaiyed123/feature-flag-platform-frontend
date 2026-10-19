@@ -37,7 +37,7 @@ export function TeamView() {
   }, [activeOrganizationId]);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   async function changeRole(member: Membership, role: Role) {
