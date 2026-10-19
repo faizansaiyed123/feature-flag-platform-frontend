@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { ApiError, api } from "@/lib/api";
 import type { Environment, Organization, Project, User } from "@/lib/types";
@@ -17,6 +17,7 @@ interface WorkspaceContextValue {
   activeOrganization: Organization | null;
   activeProject: Project | null;
   activeEnvironment: Environment | null;
+  error: string;
   setActiveOrganizationId: (id: string) => void;
   setActiveProjectId: (id: string) => void;
   setActiveEnvironmentId: (id: string) => void;
@@ -27,43 +28,191 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-function saved(key: string) { return typeof window === "undefined" ? "" : localStorage.getItem(key) || ""; }
-function remember(key: string, value: string) { if (typeof window !== "undefined") localStorage.setItem(key, value); }
+function saved(key: string) {
+  return typeof window === "undefined" ? "" : window.localStorage.getItem(key) || "";
+}
+
+function remember(key: string, value: string) {
+  if (typeof window !== "undefined") window.localStorage.setItem(key, value);
+}
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const router = useRouter(); const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null); const [organizations, setOrganizations] = useState<Organization[]>([]); const [projects, setProjects] = useState<Project[]>([]); const [environments, setEnvironments] = useState<Environment[]>([]);
-  const [activeOrganizationId, setOrg] = useState(""); const [activeProjectId, setProject] = useState(""); const [activeEnvironmentId, setEnv] = useState(""); const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [activeOrganizationId, setOrg] = useState("");
+  const [activeProjectId, setProject] = useState("");
+  const [activeEnvironmentId, setEnv] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const initialPath = useRef("/app");
 
   useEffect(() => {
     let cancelled = false;
+    initialPath.current = window.location.pathname;
+
     (async () => {
       try {
-        const [me, orgs] = await Promise.all([api.get<User>("/auth/me"), api.get<Organization[]>("/organizations")]);
+        setError("");
+        const [me, orgs] = await Promise.all([
+          api.get<User>("/auth/me"),
+          api.get<Organization[]>("/organizations"),
+        ]);
         if (cancelled) return;
-        setUser(me); setOrganizations(orgs);
-        const orgId = orgs.find(o => o.id === saved("ffp:org"))?.id || orgs[0]?.id || "";
+
+        setUser(me);
+        setOrganizations(orgs);
+
+        const orgId = orgs.find((org) => org.id === saved("ffp:org"))?.id || orgs[0]?.id || "";
         setOrg(orgId);
-        if (!orgId) { setLoading(false); return; }
         remember("ffp:org", orgId);
+
+        if (!orgId) return;
+
         const ps = await api.get<Project[]>(`/organizations/${orgId}/projects`);
         if (cancelled) return;
-        setProjects(ps); const projectId = ps.find(p => p.id === saved("ffp:project"))?.id || ps[0]?.id || ""; setProject(projectId); remember("ffp:project", projectId);
-        if (projectId) { const envs = await api.get<Environment[]>(`/projects/${projectId}/environments`); if (!cancelled) { setEnvironments(envs); const envId = envs.find(e => e.id === saved("ffp:environment"))?.id || envs[0]?.id || ""; setEnv(envId); remember("ffp:environment", envId); } }
-      } catch (err) { if (err instanceof ApiError && err.status === 401) router.replace(`/login?next=${encodeURIComponent(pathname)}`); }
-      finally { if (!cancelled) setLoading(false); }
+        setProjects(ps);
+
+        const projectId = ps.find((project) => project.id === saved("ffp:project"))?.id || ps[0]?.id || "";
+        setProject(projectId);
+        remember("ffp:project", projectId);
+
+        if (!projectId) {
+          setEnvironments([]);
+          setEnv("");
+          remember("ffp:environment", "");
+          return;
+        }
+
+        const envs = await api.get<Environment[]>(`/projects/${projectId}/environments`);
+        if (cancelled) return;
+        setEnvironments(envs);
+
+        const environmentId =
+          envs.find((environment) => environment.id === saved("ffp:environment"))?.id ||
+          envs[0]?.id ||
+          "";
+        setEnv(environmentId);
+        remember("ffp:environment", environmentId);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace(`/login?next=${encodeURIComponent(initialPath.current)}`);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Unable to load the workspace.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
-    return () => { cancelled = true; };
-  }, [router, pathname]);
 
-  function setActiveOrganizationId(id: string) { setOrg(id); remember("ffp:org", id); setProject(""); setEnv(""); remember("ffp:project", ""); remember("ffp:environment", ""); void api.get<Project[]>(`/organizations/${id}/projects`).then(ps => { setProjects(ps); const next = ps[0]?.id || ""; setProject(next); remember("ffp:project", next); if (next) void api.get<Environment[]>(`/projects/${next}/environments`).then(es => { setEnvironments(es); const env = es[0]?.id || ""; setEnv(env); remember("ffp:environment", env); }); else setEnvironments([]); }); }
-  function setActiveProjectId(id: string) { setProject(id); remember("ffp:project", id); setEnv(""); remember("ffp:environment", ""); void api.get<Environment[]>(`/projects/${id}/environments`).then(es => { setEnvironments(es); const env = es[0]?.id || ""; setEnv(env); remember("ffp:environment", env); }); }
-  function setActiveEnvironmentId(id: string) { setEnv(id); remember("ffp:environment", id); }
-  async function reloadProjects() { if (!activeOrganizationId) return; const ps = await api.get<Project[]>(`/organizations/${activeOrganizationId}/projects`); setProjects(ps); }
-  async function reloadEnvironments() { if (!activeProjectId) return; const es = await api.get<Environment[]>(`/projects/${activeProjectId}/environments`); setEnvironments(es); if (!es.some(e => e.id === activeEnvironmentId)) { const next = es[0]?.id || ""; setEnv(next); remember("ffp:environment", next); } }
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
-  const value = useMemo(() => ({ user, organizations, projects, environments, activeOrganizationId, activeProjectId, activeEnvironmentId, activeOrganization: organizations.find(o=>o.id===activeOrganizationId)||null, activeProject: projects.find(p=>p.id===activeProjectId)||null, activeEnvironment: environments.find(e=>e.id===activeEnvironmentId)||null, setActiveOrganizationId, setActiveProjectId, setActiveEnvironmentId, reloadProjects, reloadEnvironments, loading }), [user, organizations, projects, environments, activeOrganizationId, activeProjectId, activeEnvironmentId, loading]);
+  async function setActiveOrganizationId(id: string) {
+    setError("");
+    setOrg(id);
+    remember("ffp:org", id);
+    setProject("");
+    setEnv("");
+    remember("ffp:project", "");
+    remember("ffp:environment", "");
+
+    try {
+      const ps = await api.get<Project[]>(`/organizations/${id}/projects`);
+      setProjects(ps);
+      const nextProject = ps[0]?.id || "";
+      setProject(nextProject);
+      remember("ffp:project", nextProject);
+
+      if (!nextProject) {
+        setEnvironments([]);
+        return;
+      }
+
+      const es = await api.get<Environment[]>(`/projects/${nextProject}/environments`);
+      setEnvironments(es);
+      const nextEnvironment = es[0]?.id || "";
+      setEnv(nextEnvironment);
+      remember("ffp:environment", nextEnvironment);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to switch workspace.");
+    }
+  }
+
+  async function setActiveProjectId(id: string) {
+    setError("");
+    setProject(id);
+    remember("ffp:project", id);
+    setEnv("");
+    remember("ffp:environment", "");
+
+    if (!id) {
+      setEnvironments([]);
+      return;
+    }
+
+    try {
+      const es = await api.get<Environment[]>(`/projects/${id}/environments`);
+      setEnvironments(es);
+      const nextEnvironment = es[0]?.id || "";
+      setEnv(nextEnvironment);
+      remember("ffp:environment", nextEnvironment);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to switch project.");
+    }
+  }
+
+  function setActiveEnvironmentId(id: string) {
+    setEnv(id);
+    remember("ffp:environment", id);
+  }
+
+  async function reloadProjects() {
+    if (!activeOrganizationId) return;
+    const ps = await api.get<Project[]>(`/organizations/${activeOrganizationId}/projects`);
+    setProjects(ps);
+  }
+
+  async function reloadEnvironments() {
+    if (!activeProjectId) return;
+    const es = await api.get<Environment[]>(`/projects/${activeProjectId}/environments`);
+    setEnvironments(es);
+    if (!es.some((environment) => environment.id === activeEnvironmentId)) {
+      const next = es[0]?.id || "";
+      setEnv(next);
+      remember("ffp:environment", next);
+    }
+  }
+
+  const value: WorkspaceContextValue = {
+    user,
+    organizations,
+    projects,
+    environments,
+    activeOrganizationId,
+    activeProjectId,
+    activeEnvironmentId,
+    activeOrganization: organizations.find((org) => org.id === activeOrganizationId) || null,
+    activeProject: projects.find((project) => project.id === activeProjectId) || null,
+    activeEnvironment: environments.find((environment) => environment.id === activeEnvironmentId) || null,
+    error,
+    setActiveOrganizationId,
+    setActiveProjectId,
+    setActiveEnvironmentId,
+    reloadProjects,
+    reloadEnvironments,
+    loading,
+  };
+
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
 
-export function useWorkspace() { const value = useContext(WorkspaceContext); if (!value) throw new Error("useWorkspace must be used inside WorkspaceProvider"); return value; }
+export function useWorkspace() {
+  const value = useContext(WorkspaceContext);
+  if (!value) throw new Error("useWorkspace must be used inside WorkspaceProvider");
+  return value;
+}

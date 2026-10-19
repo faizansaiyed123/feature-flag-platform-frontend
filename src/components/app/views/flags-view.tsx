@@ -103,20 +103,210 @@ export function FlagsView() {
   </div>;
 }
 
-function RuleEditor({ flag, environmentId, segments, onChanged }: { flag: FeatureFlag; environmentId: string; segments: Segment[]; onChanged: () => void }) {
+function RuleEditor({
+  flag,
+  environmentId,
+  segments,
+  onChanged,
+}: {
+  flag: FeatureFlag;
+  environmentId: string;
+  segments: Segment[];
+  onChanged: () => void;
+}) {
   const [rules, setRules] = useState<TargetingRule[]>([]);
-  const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [expanded, setExpanded] = useState(false); const [error, setError] = useState("");
-  const state = flag.environment_states.find(s => s.environment_id === environmentId);
-  useEffect(() => { let cancelled = false; api.get<TargetingRule[]>(`/flags/${flag.id}/environments/${environmentId}/rules`).then(r => { if (!cancelled) setRules(r); }).catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load rules"); }).finally(() => { if (!cancelled) setLoading(false); }); return () => { cancelled = true; }; }, [flag.id, environmentId]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState("");
+  const state = flag.environment_states.find((item) => item.environment_id === environmentId);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api.get<TargetingRule[]>(`/flags/${flag.id}/environments/${environmentId}/rules`)
+      .then((items) => { if (!cancelled) setRules(items); })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load rules"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [flag.id, environmentId]);
 
   async function addRule() {
-    setSaving(true); setError("");
-    try { const created = await api.post<TargetingRule>(`/flags/${flag.id}/environments/${environmentId}/rules`, { name: `Rule ${rules.length + 1}`, conditions: [], segment_keys: [], rollout_percentage: null, serve_value: defaultValue(flag.flag_type), is_enabled: true }); setRules(prev => [...prev, created]); onChanged(); setExpanded(true); }
-    catch (err) { setError(err instanceof Error ? err.message : "Unable to add rule"); }
-    finally { setSaving(false); }
+    setSaving(true);
+    setError("");
+    try {
+      const created = await api.post<TargetingRule>(
+        `/flags/${flag.id}/environments/${environmentId}/rules`,
+        {
+          name: `Rule ${rules.length + 1}`,
+          conditions: [],
+          segment_keys: [],
+          rollout_percentage: null,
+          serve_value: defaultValue(flag.flag_type),
+          is_enabled: true,
+        },
+      );
+      setRules((prev) => [...prev, created]);
+      onChanged();
+      setExpanded(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to add rule");
+    } finally {
+      setSaving(false);
+    }
   }
-  async function updateRule(rule: TargetingRule, patch: Partial<TargetingRule>) { setSaving(true); setError(""); try { const updated = await api.patch<TargetingRule>(`/rules/${rule.id}`, patch); setRules(prev => prev.map(x => x.id === updated.id ? updated : x)); onChanged(); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update rule"); } finally { setSaving(false); } }
-  async function deleteRule(rule: TargetingRule) { try { await api.delete(`/rules/${rule.id}`); setRules(prev => prev.filter(x => x.id !== rule.id)); onChanged(); } catch (err) { setError(err instanceof Error ? err.message : "Unable to delete rule"); } }
 
-  return <div className="panel" style={{ marginTop: 12 }}><div className="panel-head"><div><strong>Targeting · {flag.key}</strong><div className="muted">{state?.enabled ? "Enabled" : "Disabled"} · default {displayJson(state?.default_value ?? defaultValue(flag.flag_type))}</div></div><div className="row-actions"><button className="text-button" onClick={() => setExpanded(!expanded)}>{expanded ? "Collapse" : "Configure"}</button><button className="button button-small button-dark" disabled={saving || !state?.enabled} onClick={() => void addRule()}>+ Rule</button></div></div>{expanded && <div className="panel-body">{error && <div className="error-box" style={{ marginBottom: 10 }}>{error}</div>}{loading ? <div className="loading">Loading targeting…</div> : rules.map(rule => <div className="panel" key={rule.id} style={{ marginBottom: 10, background: "#fbfbfa" }}><div className="panel-head"><div><strong>#{rule.priority} · {rule.name}</strong><div className="muted">{rule.rollout_percentage ? `${rule.rollout_percentage}% rollout` : "100% match"} · {rule.is_enabled ? "on" : "off"}</div></div><div className="row-actions"><button className="text-button" onClick={() => void updateRule(rule, { is_enabled: !rule.is_enabled })}>{rule.is_enabled ? "Disable" : "Enable"}</button><button className="icon-button" onClick={() => void deleteRule(rule)}>×</button></div></div><div className="modal-body form-grid"><div className="field"><label>Rule name</label><input value={rule.name} onChange={e => setRules(prev => prev.map(x=>x.id===rule.id?{...x,name:e.target.value}:x))} onBlur={() => void updateRule(rule, { name: rule.name })} /></div><div className="field"><label>Serve value</label><input value={valueForInput(rule.serve_value)} onChange={e => setRules(prev => prev.map(x=>x.id===rule.id?{...x,serve_value:parseJsonValue(e.target.value)}:x))} onBlur={() => void updateRule(rule, { serve_value: rule.serve_value })} /></div><div className="field"><label>Rollout percentage (blank = 100%)</label><input type="number" min="1" max="100" value={rule.rollout_percentage ?? ""} onChange={e => setRules(prev => prev.map(x=>x.id===rule.id?{...x,rollout_percentage:e.target.value?Number(e.target.value):null}:x))} onBlur={() => void updateRule(rule, { rollout_percentage: rule.rollout_percentage })} /></div><div className="field"><label>Segments</label><select multiple value={rule.segment_keys} onChange={e => void updateRule(rule, { segment_keys: Array.from(e.target.selectedOptions).map(o=>o.value) })}>{segments.map(segment => <option key={segment.key} value={segment.key}>{segment.name} ({segment.key})</option>)}</select></div><div className="field"><label>Conditions (all must match)</label><ConditionsEditor conditions={rule.conditions} onChange={next => { setRules(prev=>prev.map(x=>x.id===rule.id?{...x,conditions:next}:x)); void updateRule(rule,{conditions:next}); }} /></div></div></div>)}{!rules.length && <div className="notice">No rules yet. Add one to target users or introduce a controlled percentage rollout.</div>}</div>}</div>;
+  async function saveRule(rule: TargetingRule) {
+    setSaving(true);
+    setError("");
+    try {
+      const updated = await api.patch<TargetingRule>(`/rules/${rule.id}`, {
+        name: rule.name,
+        conditions: rule.conditions,
+        segment_keys: rule.segment_keys,
+        rollout_percentage: rule.rollout_percentage,
+        serve_value: rule.serve_value,
+        is_enabled: rule.is_enabled,
+      });
+      setRules((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to save targeting rule");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteRule(rule: TargetingRule) {
+    try {
+      await api.delete(`/rules/${rule.id}`);
+      setRules((prev) => prev.filter((item) => item.id !== rule.id));
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete rule");
+    }
+  }
+
+  return (
+    <div className="panel" style={{ marginTop: 12 }}>
+      <div className="panel-head">
+        <div>
+          <strong>Targeting · {flag.key}</strong>
+          <div className="muted">{state?.enabled ? "Enabled" : "Disabled"} · default {displayJson(state?.default_value ?? defaultValue(flag.flag_type))}</div>
+        </div>
+        <div className="row-actions">
+          <button className="text-button" type="button" onClick={() => setExpanded((open) => !open)}>
+            {expanded ? "Collapse" : "Configure"}
+          </button>
+          <button className="button button-small button-dark" disabled={saving || !state?.enabled} onClick={() => void addRule()}>
+            + Rule
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="panel-body">
+          {error && <div className="error-box" style={{ marginBottom: 10 }} role="alert">{error}</div>}
+          {loading ? (
+            <div className="loading">Loading targeting…</div>
+          ) : (
+            <>
+              {rules.map((rule) => (
+                <RuleCard
+                  key={rule.id}
+                  rule={rule}
+                  segments={segments}
+                  saving={saving}
+                  onSave={saveRule}
+                  onDelete={deleteRule}
+                />
+              ))}
+              {!rules.length && <div className="notice">No rules yet. Add one to target users or introduce a controlled percentage rollout.</div>}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RuleCard({
+  rule,
+  segments,
+  saving,
+  onSave,
+  onDelete,
+}: {
+  rule: TargetingRule;
+  segments: Segment[];
+  saving: boolean;
+  onSave: (rule: TargetingRule) => Promise<void>;
+  onDelete: (rule: TargetingRule) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState<TargetingRule>(rule);
+
+  useEffect(() => {
+    setDraft(rule);
+  }, [rule]);
+
+  const dirty = JSON.stringify(draft) !== JSON.stringify(rule);
+
+  function updateDraft(patch: Partial<TargetingRule>) {
+    setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  return (
+    <div className="panel rule-card">
+      <div className="panel-head">
+        <div>
+          <strong>#{draft.priority} · {draft.name}</strong>
+          <div className="muted">{draft.rollout_percentage ? `${draft.rollout_percentage}% rollout` : "100% match"} · {draft.is_enabled ? "on" : "off"}</div>
+        </div>
+        <div className="row-actions">
+          <button className="text-button" type="button" onClick={() => updateDraft({ is_enabled: !draft.is_enabled })}>
+            {draft.is_enabled ? "Disable" : "Enable"}
+          </button>
+          <button className="icon-button" type="button" aria-label={`Delete rule ${draft.priority}`} onClick={() => void onDelete(rule)}>×</button>
+        </div>
+      </div>
+
+      <div className="modal-body form-grid">
+        <div className="field">
+          <label htmlFor={`rule-name-${draft.id}`}>Rule name</label>
+          <input id={`rule-name-${draft.id}`} value={draft.name} onChange={(event) => updateDraft({ name: event.target.value })} />
+        </div>
+        <div className="field">
+          <label htmlFor={`rule-value-${draft.id}`}>Serve value</label>
+          <input id={`rule-value-${draft.id}`} value={valueForInput(draft.serve_value)} onChange={(event) => updateDraft({ serve_value: parseJsonValue(event.target.value) })} />
+        </div>
+        <div className="field">
+          <label htmlFor={`rule-rollout-${draft.id}`}>Rollout percentage</label>
+          <input id={`rule-rollout-${draft.id}`} type="number" min="1" max="100" value={draft.rollout_percentage ?? ""} onChange={(event) => updateDraft({ rollout_percentage: event.target.value ? Number(event.target.value) : null })} />
+        </div>
+        <div className="field">
+          <label htmlFor={`rule-segments-${draft.id}`}>Segments</label>
+          <select id={`rule-segments-${draft.id}`} multiple value={draft.segment_keys} onChange={(event) => updateDraft({ segment_keys: Array.from(event.target.selectedOptions).map((option) => option.value) })}>
+            {segments.map((segment) => <option key={segment.key} value={segment.key}>{segment.name} ({segment.key})</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label>Conditions (all must match)</label>
+          <ConditionsEditor
+            conditions={draft.conditions}
+            onChange={(conditions) => updateDraft({ conditions })}
+          />
+        </div>
+      </div>
+
+      <div className="rule-card-footer">
+        <span className="muted">{dirty ? "Unsaved changes" : "Saved"}</span>
+        <div className="row-actions">
+          <button className="text-button" type="button" onClick={() => setDraft(rule)} disabled={!dirty || saving}>Reset</button>
+          <button className="button button-small button-primary" type="button" onClick={() => void onSave(draft)} disabled={saving || !dirty}>
+            {saving ? "Saving…" : "Save rule"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
