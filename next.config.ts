@@ -1,9 +1,5 @@
 import type { NextConfig } from "next";
 
-if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_API_BASE_URL) {
-  throw new Error("NEXT_PUBLIC_API_BASE_URL must be set when building the production frontend.");
-}
-
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
