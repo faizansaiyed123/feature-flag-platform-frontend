@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { Condition, FeatureFlag, FlagType, Segment, TargetingRule } from "@/lib/types";
@@ -40,19 +40,36 @@ export function FlagsView() {
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  async function load() {
-    if (!activeProjectId) { setFlags([]); setLoading(false); return; }
-    setLoading(true); setError("");
+  const load = useCallback(async () => {
+    await Promise.resolve();
+
+    if (!activeProjectId) {
+      setFlags([]);
+      setSegments([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
     try {
       const [flagData, segmentData] = await Promise.all([
         api.get<FeatureFlag[]>(`/projects/${activeProjectId}/flags`),
         api.get<Segment[]>(`/projects/${activeProjectId}/segments`),
       ]);
-      setFlags(flagData); setSegments(segmentData);
-    } catch (err) { setError(err instanceof Error ? err.message : "Unable to load flags"); }
-    finally { setLoading(false); }
-  }
-  useEffect(() => { void load(); }, [activeProjectId]);
+      setFlags(flagData);
+      setSegments(segmentData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load flags");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const activeState = useMemo(() => (flag: FeatureFlag) => flag.environment_states.find(s => s.environment_id === activeEnvironmentId), [activeEnvironmentId]);
 
@@ -121,14 +138,24 @@ function RuleEditor({
   const [error, setError] = useState("");
   const state = flag.environment_states.find((item) => item.environment_id === environmentId);
 
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+
     api.get<TargetingRule[]>(`/flags/${flag.id}/environments/${environmentId}/rules`)
-      .then((items) => { if (!cancelled) setRules(items); })
-      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load rules"); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .then((items) => {
+        if (!cancelled) setRules(items);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load rules");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [flag.id, environmentId]);
 
   async function addRule() {
@@ -244,10 +271,6 @@ function RuleCard({
   onDelete: (rule: TargetingRule) => Promise<void>;
 }) {
   const [draft, setDraft] = useState<TargetingRule>(rule);
-
-  useEffect(() => {
-    setDraft(rule);
-  }, [rule]);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(rule);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { Condition, Segment } from "@/lib/types";
@@ -119,11 +119,6 @@ function SegmentCard({
       setSaving(false);
     }
   }
-
-  useEffect(() => {
-    setDraft(segment.conditions);
-  }, [segment.conditions]);
-
   return (
     <div className="segment-card">
       <div className="segment-card-head">
@@ -162,14 +157,18 @@ export function SegmentsView() {
   const [editing, setEditing] = useState<Segment | null>(null);
   const [saving, setSaving] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
+    await Promise.resolve();
+
     if (!activeProjectId) {
       setSegments([]);
       setLoading(false);
       return;
     }
+
     setLoading(true);
     setError("");
+
     try {
       setSegments(await api.get<Segment[]>(`/projects/${activeProjectId}/segments`));
     } catch (err) {
@@ -177,11 +176,11 @@ export function SegmentsView() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [activeProjectId]);
 
   useEffect(() => {
     void load();
-  }, [activeProjectId]);
+  }, [load]);
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
