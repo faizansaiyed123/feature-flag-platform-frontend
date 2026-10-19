@@ -40,6 +40,10 @@ export function TeamView() {
     void Promise.resolve().then(load);
   }, [load]);
 
+  const currentRole = members.find((member) => member.user_id === user?.id)?.role;
+  const canManageMembers = currentRole === "owner" || currentRole === "admin";
+  const canManageOwners = currentRole === "owner";
+
   async function changeRole(member: Membership, role: Role) {
     try {
       await api.patch(`/organizations/${activeOrganizationId}/members/${member.user_id}`, { role });
@@ -96,14 +100,19 @@ export function TeamView() {
                     <td>
                       {member.user_id === user?.id && member.role === "owner" ? (
                         <span className="muted">You · owner</span>
+                      ) : !canManageMembers ? (
+                        <span className="muted">Read-only</span>
+                      ) : member.role === "owner" && !canManageOwners ? (
+                        <span className="muted">Owner-only controls</span>
                       ) : (
                         <div className="row-actions">
                           <select
                             className="text-button"
+                            aria-label={`Change role for ${member.email}`}
                             value={member.role}
                             onChange={(event) => void changeRole(member, event.target.value as Role)}
                           >
-                            {roles.map((role) => <option key={role}>{role}</option>)}
+                            {(canManageOwners ? roles : roles.filter((role) => role !== "owner")).map((role) => <option key={role} value={role}>{role}</option>)}
                           </select>
                           <button className="text-button" onClick={() => void remove(member)}>Remove</button>
                         </div>
@@ -124,6 +133,11 @@ export function TeamView() {
         )}
       </div>
 
+      {!canManageMembers && (
+        <div className="notice" style={{ marginTop: 12 }}>
+          You have read-only access to this workspace. Only owners and admins can change member roles or remove members.
+        </div>
+      )}
       <div className="notice" style={{ marginTop: 12 }}>
         Invitation delivery is intentionally not faked: membership changes only act on accounts already created in the platform.
       </div>
