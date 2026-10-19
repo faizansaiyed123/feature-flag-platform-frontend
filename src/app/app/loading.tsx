@@ -1,1 +1,7 @@
-<main className="page-content" aria-busy="true"><div className="loading">Loading workspace…</div></main>;
+export default function AppLoading() {
+  return (
+    <main className="page-content" aria-busy="true">
+      <div className="loading">Loading workspace…</div>
+    </main>
+  );
+}
