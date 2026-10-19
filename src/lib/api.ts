@@ -34,15 +34,22 @@ async function parseError(response: Response): Promise<string> {
 
 async function refreshSession(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
   refreshPromise = fetch(`${API_BASE}/auth/refresh`, {
     method: "POST",
     credentials: "include",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     cache: "no-store",
+    signal: controller.signal,
   })
     .then((response) => response.ok)
     .catch(() => false)
-    .finally(() => { refreshPromise = null; });
+    .finally(() => {
+      clearTimeout(timeout);
+      refreshPromise = null;
+    });
   return refreshPromise;
 }
 
@@ -51,7 +58,17 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const { retryOnAuth = true, headers, signal, ...init } = options;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000);
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 15_000);
+  const abortFromCaller = () => controller.abort(signal?.reason);
+  if (signal?.aborted) {
+    abortFromCaller();
+  } else {
+    signal?.addEventListener("abort", abortFromCaller, { once: true });
+  }
   const requestId =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
@@ -61,7 +78,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       ...init,
-      signal: signal ?? controller.signal,
+      signal: controller.signal,
       credentials: "include",
       headers: {
         Accept: "application/json",
@@ -82,12 +99,13 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     if (response.status === 204) return undefined as T;
     return (await response.json()) as T;
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
+    if (timedOut && error instanceof DOMException && error.name === "AbortError") {
       throw new ApiError(408, "The request timed out. Please try again.");
     }
     throw error;
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener("abort", abortFromCaller);
   }
 }
 

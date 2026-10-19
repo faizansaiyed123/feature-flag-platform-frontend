@@ -60,7 +60,7 @@ export default function Home() {
           <div className="workflow-step"><span>01</span><h3>Create a flag</h3><p>Define a typed value and a stable key. Keep product logic decoupled from release timing.</p></div>
           <div className="workflow-step"><span>02</span><h3>Target a segment</h3><p>Compose attribute conditions and reusable audience segments without hard-coding user lists.</p></div>
           <div className="workflow-step"><span>03</span><h3>Roll out safely</h3><p>Use deterministic percentages and the simulator to preview real cohorts before production.</p></div>
-          <div className="workflow-step"><span>04</span><h3>Audit the change</h3><p>Every workspace change is visible in an immutable operational timeline.</p></div>
+          <div className="workflow-step"><span>04</span><h3>Audit the change</h3><p>Review flag and targeting changes in a project audit timeline.</p></div>
         </div>
       </section>
 
