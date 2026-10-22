@@ -82,7 +82,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   await takeScreenshot(page, "03-settings-project-environment");
 
   await page.goto("/app/segments");
-  await expect(page.getByRole("heading", { name: "Segments" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Segments", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "+ New segment" }).click();
   await page.locator('input[name="key"]').fill(segmentKey);
   await page.locator('input[name="name"]').fill("Beta users");
