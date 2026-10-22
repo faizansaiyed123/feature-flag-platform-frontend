@@ -285,6 +285,8 @@ test("authenticated session, console routes, and mobile navigation stay usable",
   await expect(page.getByRole("heading", { name: "Feature flags" })).toBeVisible();
 
   await page.goto("/app");
+  await page.getByRole("button", { name: "Menu" }).click();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/$/);
 
