@@ -55,7 +55,7 @@ jobs:
           APP_ENV: test
           AUTH_SECRET_KEY: ci-only-feature-flag-platform-secret-32-chars
           DATABASE_URL: postgresql+psycopg://feature_flags:feature_flags@127.0.0.1:5432/feature_flags_test
-          CORS_ORIGINS: http://127.0.0.1:3000
+          CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
         run: |
           ruff check app migrations tests
           pytest -q
@@ -76,7 +76,7 @@ jobs:
           APP_ENV: development
           AUTH_SECRET_KEY: ci-only-feature-flag-platform-secret-32-chars
           DATABASE_URL: postgresql+psycopg://feature_flags:feature_flags@127.0.0.1:5432/feature_flags_test
-          CORS_ORIGINS: http://127.0.0.1:3000
+          CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
           ALLOWED_HOSTS: 127.0.0.1,localhost
         run: |
           nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../backend.log 2>&1 &
