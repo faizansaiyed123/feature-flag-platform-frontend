@@ -74,7 +74,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   await environmentForm.locator('input[name="key"]').fill(environmentKey);
 
   await environmentForm.getByRole("button", { name: "Create environment" }).click();
-  await expect(page.getByText("Store this SDK key", { exact: false })).toBeVisible();
+  await expect(page.getByText("New SDK key", { exact: false })).toBeVisible();
   sdkKey = (await page.locator(".key-reveal code").innerText()).trim();
   expect(sdkKey).toMatch(/^ffp_/);
   environmentId = await page.locator('#environment-select option:not([value=""])').first().getAttribute("value") || "";
