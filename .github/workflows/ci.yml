@@ -1,46 +1,32 @@
-name: Frontend CI
+name: Full-stack quality and browser verification
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "docs/testing/**"
   pull_request:
-
-concurrency:
-  group: feature-flag-platform-e2e-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  quality-and-e2e:
+  quality:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip visuals]')
     runs-on: ubuntu-24.04
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17
         env:
           POSTGRES_USER: feature_flags
           POSTGRES_PASSWORD: feature_flags
-          POSTGRES_DB: feature_flags
+          POSTGRES_DB: feature_flags_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U feature_flags -d feature_flags"
+          --health-cmd "pg_isready -U feature_flags -d feature_flags_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
-    env:
-      DATABASE_URL: postgresql+psycopg://feature_flags:feature_flags@127.0.0.1:5432/feature_flags
-      AUTH_SECRET_KEY: ci-only-feature-flag-platform-secret-32
-      APP_ENV: test
-      CORS_ORIGINS: http://127.0.0.1:3000
-      ALLOWED_HOSTS: 127.0.0.1,localhost
-      API_PREFIX: /api/v1
-      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000/api/v1
-      PLAYWRIGHT_API_BASE_URL: http://127.0.0.1:8000/api/v1
-      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
@@ -49,7 +35,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: faizansaiyed123/feature-flag-platform-backend
-          ref: main
           path: backend
 
       - name: Setup Python
@@ -62,21 +47,44 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
+          pip install "pytest>=8.3,<10" "pytest-asyncio>=1,<2" "ruff>=0.13,<1"
 
-      - name: Migrate database
+      - name: Backend lint and tests
         working-directory: backend
+        env:
+          APP_ENV: test
+          AUTH_SECRET_KEY: ci-only-feature-flag-platform-secret-32-chars
+          DATABASE_URL: postgresql+psycopg://feature_flags:feature_flags@127.0.0.1:5432/feature_flags_test
+          CORS_ORIGINS: http://127.0.0.1:3000
+        run: |
+          ruff check app migrations tests
+          pytest -q
+          python -m compileall app tests
+          alembic heads
+
+      - name: Run database migrations
+        working-directory: backend
+        env:
+          APP_ENV: development
+          AUTH_SECRET_KEY: ci-only-feature-flag-platform-secret-32-chars
+          DATABASE_URL: postgresql+psycopg://feature_flags:feature_flags@127.0.0.1:5432/feature_flags_test
         run: alembic upgrade head
 
       - name: Start backend
         working-directory: backend
+        env:
+          APP_ENV: development
+          AUTH_SECRET_KEY: ci-only-feature-flag-platform-secret-32-chars
+          DATABASE_URL: postgresql+psycopg://feature_flags:feature_flags@127.0.0.1:5432/feature_flags_test
+          CORS_ORIGINS: http://127.0.0.1:3000
+          ALLOWED_HOSTS: 127.0.0.1,localhost
         run: |
-          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../backend.log 2>&1 &
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../backend.log 2>&1 &
           for i in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:8000/api/v1/ready > /tmp/ready.json; then
-              cat /tmp/ready.json
+            if curl -fsS http://127.0.0.1:8000/api/v1/ready >/dev/null; then
               exit 0
             fi
-            sleep 2
+            sleep 1
           done
           cat ../backend.log
           exit 1
@@ -87,73 +95,97 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install frontend dependencies
+      - name: Install frontend
         run: npm ci
 
-      - name: Lint
+      - name: Frontend lint
         run: npm run lint
 
-      - name: Type check
+      - name: Frontend type check
         run: npm run typecheck
 
-      - name: Production build
+      - name: Frontend production build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000/api/v1
         run: npm run build
 
       - name: Start frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000/api/v1
         run: |
-          nohup npm run start > frontend.log 2>&1 &
+          nohup npm run start -- --hostname 127.0.0.1 --port 3000 > frontend.log 2>&1 &
           for i in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:3000/ > /tmp/frontend.html; then
+            if curl -fsS http://127.0.0.1:3000 >/dev/null; then
               exit 0
             fi
-            sleep 2
+            sleep 1
           done
           cat frontend.log
           exit 1
 
       - name: Install browser test runner
-        run: npm install --no-save @playwright/test@1.56.1
+        run: |
+          npm install --no-save @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Browser integration and visual walkthrough
+      - name: Run full-stack browser tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          PLAYWRIGHT_API_BASE_URL: http://127.0.0.1:8000/api/v1
         run: npx playwright test
 
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: feature-flag-browser-evidence
+          name: flagship-browser-evidence
           path: |
-            docs/testing/visuals/
-            test-results/
+            docs/testing/visuals/*.png
             playwright-report/
+            test-results/
+            backend.log
+            frontend.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish verified walkthrough screenshots
+        if: github.event_name == 'push'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          images = sorted(Path("docs/testing/visuals").glob("*.png"))
+          manifest = {
+              "description": "Screenshots captured after successful product assertions in the full-stack Playwright flow.",
+              "screenshots": [str(path) for path in images],
+          }
+          Path("docs/testing/visuals/manifest.json").write_text(
+              json.dumps(manifest, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          git add docs/testing/visuals
+          if git diff --cached --quiet; then
+            echo "No visual changes to publish."
+            exit 0
+          fi
+          git commit -m "docs: publish verified product walkthrough screenshots [skip visuals]"
+          git push origin main
+
+      - name: Upload service logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flagship-service-logs
+          path: |
             backend.log
             frontend.log
           if-no-files-found: ignore
           retention-days: 14
-
-      - name: Publish visual walkthrough screenshots
-        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git reset --mixed origin/main
-          git add docs/testing/visuals/*.png
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "docs: publish browser walkthrough screenshots"
-          git pull --rebase origin main
-          git push origin HEAD:main
-
-      - name: Surface service logs
-        if: always()
-        run: |
-          echo "===== backend.log ====="
-          cat backend.log || true
-          echo "===== frontend.log ====="
-          cat frontend.log || true
-
