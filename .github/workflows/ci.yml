@@ -125,14 +125,13 @@ jobs:
 
       - name: Install browser test runner
         run: |
-          npm install --no-save @playwright/test@1.56.1
-          npx playwright install --with-deps chromium
+          npx --yes playwright@1.56.1 install chromium
 
       - name: Run full-stack browser tests
         env:
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
           PLAYWRIGHT_API_BASE_URL: http://127.0.0.1:8000/api/v1
-        run: npx playwright test
+        run: npx --yes playwright@1.56.1 test
 
       - name: Upload browser evidence
         if: always()
