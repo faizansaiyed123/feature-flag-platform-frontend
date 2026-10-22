@@ -219,7 +219,6 @@ function RuleEditor({
         },
       );
       setRules((prev) => [...prev, created]);
-      onChanged();
       setExpanded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to add rule");
