@@ -7,6 +7,10 @@ on:
       - "docs/testing/**"
   pull_request:
 
+concurrency:
+  group: feature-flag-platform-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -45,6 +49,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: faizansaiyed123/feature-flag-platform-backend
+          ref: main
           path: backend
 
       - name: Setup Python
@@ -152,9 +157,3 @@ jobs:
           echo "===== frontend.log ====="
           cat frontend.log || true
 
-  # Keep the screenshot publication job from racing with another push.
-  publish-lock:
-    if: false
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Reserved for workflow concurrency documentation"
