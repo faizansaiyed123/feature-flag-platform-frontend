@@ -6,7 +6,7 @@ This walkthrough follows the product as a real user would use it:
 
 **Create a workspace → define the release environment → create a flag → define an audience → configure targeting → simulate decisions → integrate the SDK → review the change history → manage access**
 
-The screens below are captured from real browser flows after the corresponding product action completed successfully.
+The screens below are captured from real browser flows after the corresponding product action completed successfully. The console routes are also revisited after the main lifecycle so the walkthrough covers the complete product surface, not only the happy-path setup flow.
 
 ## 1. Start with a workspace
 
@@ -100,31 +100,31 @@ The remaining console areas are exercised as connected product surfaces rather t
 
 ### Feature flags
 
-![Feature flag route](./visuals/11-route-flags.png)
+![Feature flag route](./visuals/12-route-flags.png)
 
 ### Segments
 
-![Segments route](./visuals/12-route-segments.png)
+![Segments route](./visuals/13-route-segments.png)
 
 ### Rollout simulator
 
-![Simulator route](./visuals/13-route-simulator.png)
+![Simulator route](./visuals/14-route-simulator.png)
 
 ### Team access
 
-![Team route](./visuals/14-route-team.png)
+![Team route](./visuals/15-route-team.png)
 
 ### Audit history
 
-![Audit route](./visuals/15-route-audit.png)
+![Audit route](./visuals/16-route-audit.png)
 
 ### API & SDK
 
-![API route](./visuals/16-route-api.png)
+![API route](./visuals/17-route-api.png)
 
 ### Settings
 
-![Settings route](./visuals/17-route-settings.png)
+![Settings route](./visuals/18-route-settings.png)
 
 ### Overview
 
