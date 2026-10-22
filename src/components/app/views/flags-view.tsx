@@ -106,12 +106,14 @@ export function FlagsView() {
   const visibleFlags = filteredFlags.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   async function createFlag(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setSaving(true); setError("");
-    const form = new FormData(event.currentTarget);
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    setSaving(true); setError("");
+    const form = new FormData(formElement);
     const type = String(form.get("flag_type")) as FlagType;
     try {
       await api.post(`/projects/${activeProjectId}/flags`, { key: form.get("key"), name: form.get("name"), description: form.get("description") || null, flag_type: type, default_value: parseJsonValue(String(form.get("default_value") || ""), defaultValue(type)) });
-      setShowCreate(false); event.currentTarget.reset(); await load();
+      setShowCreate(false); formElement.reset(); await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to create flag"); }
     finally { setSaving(false); }
   }
