@@ -212,7 +212,7 @@ test("real product lifecycle: signup → project → environment → flag → se
 
   await page.goto("/app/team");
   await expect(page.getByRole("heading", { name: "Team access" })).toBeVisible();
-  await expect(page.getByText(credentials.email, { exact: true })).toBeVisible();
+  await expect(page.locator("table").getByText(credentials.email, { exact: true })).toBeVisible();
   await expect(page.getByText("owner", { exact: true }).first()).toBeVisible();
   await takeScreenshot(page, "09-team-access");
 
