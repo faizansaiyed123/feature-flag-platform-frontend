@@ -142,7 +142,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   await targetingPanel.getByRole("button", { name: /\+ Rule/ }).click();
   expect((await addRuleResponse).status()).toBe(201);
 
-  const ruleCard = page.locator(".rule-card").filter({ hasText: "Rule 1" });
+  const ruleCard = page.locator(".rule-card").first();
   await expect(ruleCard).toBeVisible();
   await ruleCard.getByLabel("Rule name").fill("Beta checkout rollout");
   await ruleCard.getByLabel("Serve value").fill("true");
