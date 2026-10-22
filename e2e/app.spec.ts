@@ -74,7 +74,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   await environmentForm.locator('input[name="key"]').fill(environmentKey);
 
   await environmentForm.getByRole("button", { name: "Create environment" }).click();
-  await expect(page.getByText("New SDK key", { exact: false })).toBeVisible();
+  await expect(page.getByText("Store this SDK key", { exact: false })).toBeVisible();
   sdkKey = (await page.locator(".key-reveal code").innerText()).trim();
   expect(sdkKey).toMatch(/^ffp_/);
   environmentId = await page.locator('#environment-select option:not([value=""])').first().getAttribute("value") || "";
@@ -190,7 +190,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   const rotatePayload = await (await rotateResponse).json();
   sdkKey = rotatePayload.sdk_key;
   expect(sdkKey).toMatch(/^ffp_/);
-  await expect(page.getByText("Store this SDK key", { exact: false })).toBeVisible();
+  await expect(page.getByText("New SDK key", { exact: false })).toBeVisible();
 
   const externalEvaluation = await page.request.post(
     `${process.env.PLAYWRIGHT_API_BASE_URL || "http://127.0.0.1:8000/api/v1"}/evaluate/${environmentKey}/${flagKey}`,
