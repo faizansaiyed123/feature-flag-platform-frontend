@@ -222,7 +222,10 @@ test("real product lifecycle: signup → project → environment → flag → se
       response.request().method() === "GET",
   );
   await page.goto("/app");
-  expect((await overviewResponse).status()).toBe(200);
+  const overviewPayloadResponse = await overviewResponse;
+  expect(overviewPayloadResponse.status()).toBe(200);
+  const overviewPayload = await overviewPayloadResponse.json();
+  expect(overviewPayload).toMatchObject({ flags: 1, enabled_flags: 1, targeting_rules: 1 });
   await expect(page.getByRole("heading", { name: "Checkout Platform" })).toBeVisible();
   await expect(page.getByText("checkout-redesign", { exact: true })).toBeVisible();
   await takeScreenshot(page, "10-overview");
