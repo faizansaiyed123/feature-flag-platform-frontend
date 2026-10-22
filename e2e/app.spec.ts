@@ -57,9 +57,9 @@ test("real product lifecycle: signup → project → environment → flag → se
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 
   const projectForm = page.locator("form").filter({ hasText: "New project" });
-  await projectForm.getByLabel("Name").fill("Checkout Platform");
-  await projectForm.getByLabel("Key").fill("checkout");
-  await projectForm.getByLabel("Description").fill("Release controls for checkout behavior");
+  await projectForm.locator('input[name="name"]').fill("Checkout Platform");
+  await projectForm.locator('input[name="key"]').fill("checkout");
+  await projectForm.locator('textarea[name="description"]').fill("Release controls for checkout behavior");
 
   const projectResponse = page.waitForResponse(
     (response) => /\/api\/v1\/organizations\/[^/]+\/projects$/.test(response.url()) && response.request().method() === "POST",
@@ -70,8 +70,8 @@ test("real product lifecycle: signup → project → environment → flag → se
   expect(projectId).toBeTruthy();
 
   const environmentForm = page.locator("form").filter({ hasText: "New environment" });
-  await environmentForm.getByLabel("Name").fill("Production");
-  await environmentForm.getByLabel("Key").fill(environmentKey);
+  await environmentForm.locator('input[name="name"]').fill("Production");
+  await environmentForm.locator('input[name="key"]').fill(environmentKey);
 
   const environmentResponse = page.waitForResponse(
     (response) => /\/api\/v1\/projects\/[^/]+\/environments$/.test(response.url()) && response.request().method() === "POST",
@@ -82,15 +82,15 @@ test("real product lifecycle: signup → project → environment → flag → se
   sdkKey = environmentPayload.sdk_key;
   expect(environmentId).toBeTruthy();
   expect(sdkKey).toMatch(/^ffp_/);
-  await expect(page.getByText("New SDK key", { exact: false })).toBeVisible();
+  await expect(page.getByText("Store this SDK key", { exact: false })).toBeVisible();
   await takeScreenshot(page, "03-settings-project-environment");
 
   await page.goto("/app/segments");
   await expect(page.getByRole("heading", { name: "Segments" })).toBeVisible();
   await page.getByRole("button", { name: "+ New segment" }).click();
-  await page.getByLabel("Key", { exact: true }).fill(segmentKey);
-  await page.getByLabel("Name", { exact: true }).fill("Beta users");
-  await page.getByLabel("Description", { exact: true }).fill("Users eligible for the checkout beta");
+  await page.locator('input[name="key"]').fill(segmentKey);
+  await page.locator('input[name="name"]').fill("Beta users");
+  await page.locator('textarea[name="description"]').fill("Users eligible for the checkout beta");
 
   const segmentCreateResponse = page.waitForResponse(
     (response) => /\/api\/v1\/projects\/[^/]+\/segments$/.test(response.url()) && response.request().method() === "POST",
@@ -118,11 +118,11 @@ test("real product lifecycle: signup → project → environment → flag → se
   await page.goto("/app/flags");
   await expect(page.getByRole("heading", { name: "Feature flags" })).toBeVisible();
   await page.getByRole("button", { name: "+ New flag" }).click();
-  await page.getByLabel("Key", { exact: true }).fill(flagKey);
-  await page.getByLabel("Name", { exact: true }).fill("Checkout redesign");
-  await page.getByLabel("Description", { exact: true }).fill("Controlled release of the new checkout experience");
-  await page.getByLabel("Type", { exact: true }).selectOption("boolean");
-  await page.getByLabel("Default value", { exact: true }).fill("false");
+  await page.locator('input[name="key"]').fill(flagKey);
+  await page.locator('input[name="name"]').fill("Checkout redesign");
+  await page.locator('textarea[name="description"]').fill("Controlled release of the new checkout experience");
+  await page.locator('select[name="flag_type"]').selectOption("boolean");
+  await page.locator('input[name="default_value"]').fill("false");
 
   const flagCreateResponse = page.waitForResponse(
     (response) => /\/api\/v1\/projects\/[^/]+\/flags$/.test(response.url()) && response.request().method() === "POST",
@@ -162,8 +162,8 @@ test("real product lifecycle: signup → project → environment → flag → se
 
   await page.goto("/app/simulator");
   await expect(page.getByRole("heading", { name: "Rollout simulator" })).toBeVisible();
-  await page.getByLabel("Feature flag").selectOption(flagKey);
-  await page.getByLabel("Users JSON").fill(
+  await page.locator(".field").filter({ hasText: "Feature flag" }).locator("select").selectOption(flagKey);
+  await page.locator(".field").filter({ hasText: "Users JSON" }).locator("textarea").fill(
     JSON.stringify([
       { user_id: "e2e-pro", attributes: { plan: "pro", country: "IN" } },
       { user_id: "e2e-free", attributes: { plan: "free", country: "IN" } },
@@ -194,7 +194,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   const rotatePayload = await (await rotateResponse).json();
   sdkKey = rotatePayload.sdk_key;
   expect(sdkKey).toMatch(/^ffp_/);
-  await expect(page.getByText("New SDK key", { exact: false })).toBeVisible();
+  await expect(page.getByText("Store this SDK key", { exact: false })).toBeVisible();
 
   const externalEvaluation = await page.request.post(
     `${process.env.PLAYWRIGHT_API_BASE_URL || "http://127.0.0.1:8000/api/v1"}/evaluate/${environmentKey}/${flagKey}`,
