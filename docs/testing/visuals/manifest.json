@@ -1,0 +1,24 @@
+{
+  "description": "Screenshots captured after successful product assertions in the full-stack Playwright flow.",
+  "screenshots": [
+    "docs/testing/visuals/01-signup.png",
+    "docs/testing/visuals/02-overview-empty.png",
+    "docs/testing/visuals/03-settings-project-environment.png",
+    "docs/testing/visuals/04-segments-targeting-audience.png",
+    "docs/testing/visuals/05-feature-flags-and-targeting.png",
+    "docs/testing/visuals/06-rollout-simulator.png",
+    "docs/testing/visuals/07-api-and-sdk.png",
+    "docs/testing/visuals/08-audit-history.png",
+    "docs/testing/visuals/09-team-access.png",
+    "docs/testing/visuals/10-overview.png",
+    "docs/testing/visuals/11-route-overview.png",
+    "docs/testing/visuals/12-route-flags.png",
+    "docs/testing/visuals/13-route-segments.png",
+    "docs/testing/visuals/14-route-simulator.png",
+    "docs/testing/visuals/15-route-team.png",
+    "docs/testing/visuals/16-route-audit.png",
+    "docs/testing/visuals/17-route-api.png",
+    "docs/testing/visuals/18-route-settings.png",
+    "docs/testing/visuals/19-mobile-navigation.png"
+  ]
+}
