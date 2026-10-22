@@ -3,20 +3,86 @@ name: Frontend CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/testing/**"
   pull_request:
 
-jobs:
-  quality:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+permissions:
+  contents: write
 
-      - uses: actions/setup-node@v4
+jobs:
+  quality-and-e2e:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: feature_flags
+          POSTGRES_PASSWORD: feature_flags
+          POSTGRES_DB: feature_flags
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U feature_flags -d feature_flags"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://feature_flags:feature_flags@127.0.0.1:5432/feature_flags
+      AUTH_SECRET_KEY: ci-only-feature-flag-platform-secret-32
+      APP_ENV: test
+      CORS_ORIGINS: http://127.0.0.1:3000
+      ALLOWED_HOSTS: 127.0.0.1,localhost
+      API_PREFIX: /api/v1
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8000/api/v1
+      PLAYWRIGHT_API_BASE_URL: http://127.0.0.1:8000/api/v1
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: faizansaiyed123/feature-flag-platform-backend
+          path: backend
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Migrate database
+        working-directory: backend
+        run: alembic upgrade head
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > ../backend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/api/v1/ready > /tmp/ready.json; then
+              cat /tmp/ready.json
+              exit 0
+            fi
+            sleep 2
+          done
+          cat ../backend.log
+          exit 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
 
       - name: Lint
@@ -26,6 +92,69 @@ jobs:
         run: npm run typecheck
 
       - name: Production build
-        env:
-          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api/v1
         run: npm run build
+
+      - name: Start frontend
+        run: |
+          nohup npm run start > frontend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/ > /tmp/frontend.html; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat frontend.log
+          exit 1
+
+      - name: Install browser test runner
+        run: npm install --no-save @playwright/test@1.56.1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser integration and visual walkthrough
+        run: npx playwright test
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feature-flag-browser-evidence
+          path: |
+            docs/testing/visuals/
+            test-results/
+            playwright-report/
+            backend.log
+            frontend.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Publish visual walkthrough screenshots
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git reset --mixed origin/main
+          git add docs/testing/visuals/*.png
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "docs: publish browser walkthrough screenshots"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Surface service logs
+        if: always()
+        run: |
+          echo "===== backend.log ====="
+          cat backend.log || true
+          echo "===== frontend.log ====="
+          cat frontend.log || true
+
+  # Keep the screenshot publication job from racing with another push.
+  publish-lock:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Reserved for workflow concurrency documentation"
