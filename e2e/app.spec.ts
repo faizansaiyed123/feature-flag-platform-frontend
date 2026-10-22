@@ -216,7 +216,13 @@ test("real product lifecycle: signup → project → environment → flag → se
   await expect(page.getByText("owner", { exact: true }).first()).toBeVisible();
   await takeScreenshot(page, "09-team-access");
 
+  const overviewResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/v1/projects/${projectId}/overview`) &&
+      response.request().method() === "GET",
+  );
   await page.goto("/app");
+  expect((await overviewResponse).status()).toBe(200);
   await expect(page.getByRole("heading", { name: "Checkout Platform" })).toBeVisible();
   await expect(page.getByText("checkout-redesign", { exact: true })).toBeVisible();
   await takeScreenshot(page, "10-overview");
