@@ -91,7 +91,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   const segmentCreateResponse = page.waitForResponse(
     (response) => /\/api\/v1\/projects\/[^/]+\/segments$/.test(response.url()) && response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Create segment" }).click();
+  await page.locator("form").filter({ hasText: "Create segment" }).getByRole("button", { name: "Create segment" }).click();
   expect((await segmentCreateResponse).status()).toBe(201);
 
   const segmentCard = page.locator(".segment-card").filter({ hasText: segmentKey });
