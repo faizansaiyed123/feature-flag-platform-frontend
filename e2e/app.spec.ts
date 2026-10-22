@@ -73,16 +73,15 @@ test("real product lifecycle: signup → project → environment → flag → se
   await environmentForm.locator('input[name="name"]').fill("Production");
   await environmentForm.locator('input[name="key"]').fill(environmentKey);
 
-  const environmentResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/projects\/[^/]+\/environments$/.test(response.url()) && response.request().method() === "POST",
-  );
   await environmentForm.getByRole("button", { name: "Create environment" }).click();
-  const environmentPayload = await (await environmentResponse).json();
-  environmentId = environmentPayload.id;
-  sdkKey = environmentPayload.sdk_key;
-  expect(environmentId).toBeTruthy();
-  expect(sdkKey).toMatch(/^ffp_/);
   await expect(page.getByText("Store this SDK key", { exact: false })).toBeVisible();
+  const environmentPayload = JSON.parse(
+    await page.locator(".key-reveal code").innerText(),
+  );
+  sdkKey = environmentPayload;
+  expect(sdkKey).toMatch(/^ffp_/);
+  environmentId = await page.locator("#environment-select option").first().getAttribute("value") || "";
+  expect(environmentId).toBeTruthy();
   await takeScreenshot(page, "03-settings-project-environment");
 
   await page.goto("/app/segments");
