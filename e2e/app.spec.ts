@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
@@ -17,7 +17,7 @@ let sdkKey = "";
 const flagKey = "checkout-redesign";
 const segmentKey = "beta-users";
 
-function watchApiFailures(page: import("@playwright/test").Page) {
+function watchApiFailures(page: import("playwright/test").Page) {
   const failures: string[] = [];
   page.on("response", (response) => {
     if (response.url().includes("/api/v1/") && response.status() >= 500) {
@@ -27,7 +27,7 @@ function watchApiFailures(page: import("@playwright/test").Page) {
   return failures;
 }
 
-async function takeScreenshot(page: import("@playwright/test").Page, name: string) {
+async function takeScreenshot(page: import("playwright/test").Page, name: string) {
   await page.screenshot({
     path: `docs/testing/visuals/${name}.png`,
     fullPage: true,
@@ -255,7 +255,7 @@ test("authenticated session, console routes, and mobile navigation stay usable",
 
   for (const route of routes) {
     let seen = false;
-    const listener = (response: import("@playwright/test").Response) => {
+    const listener = (response: import("playwright/test").Response) => {
       if (route.api.test(response.url()) && response.status() < 400) seen = true;
     };
     page.on("response", listener);
