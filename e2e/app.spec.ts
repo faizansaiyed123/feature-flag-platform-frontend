@@ -12,7 +12,7 @@ const credentials = {
 
 let projectId = "";
 let environmentId = "";
-let environmentKey = "production";
+const environmentKey = "production";
 let sdkKey = "";
 const flagKey = "checkout-redesign";
 const segmentKey = "beta-users";
