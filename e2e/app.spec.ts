@@ -108,7 +108,7 @@ test("real product lifecycle: signup → project → environment → flag → se
   expect((await segmentUpdateResponse).status()).toBe(200);
 
   await page.reload();
-  await expect(page.locator(".segment-card").filter({ hasText: segmentKey }).getByDisplayValue("plan")).toBeVisible();
+  await expect(page.locator(".segment-card").filter({ hasText: segmentKey }).getByLabel("Condition 1 attribute")).toHaveValue("plan");
   await takeScreenshot(page, "04-segments-targeting-audience");
 
   await page.goto("/app/flags");
