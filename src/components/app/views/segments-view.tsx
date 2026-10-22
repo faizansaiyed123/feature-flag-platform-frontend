@@ -184,9 +184,10 @@ export function SegmentsView() {
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setSaving(true);
     setError("");
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     try {
       await api.post(`/projects/${activeProjectId}/segments`, {
         key: form.get("key"),
@@ -195,7 +196,7 @@ export function SegmentsView() {
         conditions: [],
       });
       setShowCreate(false);
-      event.currentTarget.reset();
+      formElement.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create segment");
