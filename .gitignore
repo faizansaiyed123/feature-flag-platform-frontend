@@ -9,3 +9,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Generated build and dependency output
+build/
+dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Browser test output
+playwright-report/
+test-results/
+
+# Local runtime data and logs
+*.log
+logs/
+storage/
+uploads/
