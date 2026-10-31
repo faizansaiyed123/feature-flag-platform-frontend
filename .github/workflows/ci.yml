@@ -2,7 +2,7 @@ name: Full-stack quality and browser verification
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'chore/format-cleanup-*']
   pull_request:
 
 concurrency:
@@ -105,7 +105,7 @@ jobs:
         run: npm ci
 
       - name: Apply Prettier formatting (temporary maintenance pass)
-        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'chore/format-cleanup-')
+        if: github.event_name == 'push' && startsWith(github.ref_name, 'chore/format-cleanup-')
         run: |
           npx --yes prettier@3.9.10 --write --print-width 100 --trailing-comma all --end-of-line lf "src/**/*.{ts,tsx,css}" "e2e/**/*.ts" "playwright.config.ts" "next.config.ts" "eslint.config.mjs"
           npx --yes prettier@3.9.10 --check --print-width 100 --trailing-comma all --end-of-line lf "src/**/*.{ts,tsx,css}" "e2e/**/*.ts" "playwright.config.ts" "next.config.ts" "eslint.config.mjs"
@@ -117,7 +117,7 @@ jobs:
             exit 0
           fi
           git commit -m "style: format frontend sources with Prettier [skip ci]"
-          git push origin "HEAD:${{ github.head_ref }}"
+          git push origin "HEAD:${{ github.ref_name }}"
 
       - name: Frontend lint
         run: npm run lint
