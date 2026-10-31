@@ -2,7 +2,7 @@ name: Full-stack quality and browser verification
 
 on:
   push:
-    branches: [main, 'chore/format-cleanup-*']
+    branches: [main]
   pull_request:
 
 concurrency:
@@ -34,8 +34,6 @@ jobs:
     steps:
       - name: Checkout frontend
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
 
       - name: Checkout backend
         uses: actions/checkout@v4
@@ -103,21 +101,6 @@ jobs:
 
       - name: Install frontend
         run: npm ci
-
-      - name: Apply Prettier formatting (temporary maintenance pass)
-        if: github.event_name == 'push' && startsWith(github.ref_name, 'chore/format-cleanup-')
-        run: |
-          npx --yes prettier@3.9.10 --write --print-width 100 --trailing-comma all --end-of-line lf "src/**/*.{ts,tsx,css}" "e2e/**/*.ts" "playwright.config.ts" "next.config.ts" "eslint.config.mjs"
-          npx --yes prettier@3.9.10 --check --print-width 100 --trailing-comma all --end-of-line lf "src/**/*.{ts,tsx,css}" "e2e/**/*.ts" "playwright.config.ts" "next.config.ts" "eslint.config.mjs"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "src" "e2e" "playwright.config.ts" "next.config.ts" "eslint.config.mjs"
-          if git diff --cached --quiet; then
-            echo "Formatting already up to date."
-            exit 0
-          fi
-          git commit -m "style: format frontend sources with Prettier [skip ci]"
-          git push origin "HEAD:${{ github.ref_name }}"
 
       - name: Frontend lint
         run: npm run lint
