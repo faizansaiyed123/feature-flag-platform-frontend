@@ -59,12 +59,16 @@ function ConditionsEditor({
               )
             }
           >
-            {operators.map((operator) => <option key={operator}>{operator}</option>)}
+            {operators.map((operator) => (
+              <option key={operator}>{operator}</option>
+            ))}
           </select>
           <input
             aria-label={`Condition ${index + 1} value`}
             placeholder="value / JSON"
-            value={typeof condition.value === "string" ? condition.value : displayJson(condition.value)}
+            value={
+              typeof condition.value === "string" ? condition.value : displayJson(condition.value)
+            }
             onChange={(event) =>
               onChange(
                 conditions.map((item, itemIndex) =>
@@ -124,11 +128,18 @@ function SegmentCard({
       <div className="segment-card-head">
         <div>
           <h3>{segment.name}</h3>
-          <p><code>{segment.key}</code> · {segment.conditions.length} condition{segment.conditions.length === 1 ? "" : "s"}</p>
+          <p>
+            <code>{segment.key}</code> · {segment.conditions.length} condition
+            {segment.conditions.length === 1 ? "" : "s"}
+          </p>
         </div>
         <div className="row-actions">
-          <button className="text-button" onClick={onEdit}>Details</button>
-          <button className="text-button" onClick={() => void onDelete()}>Delete</button>
+          <button className="text-button" onClick={onEdit}>
+            Details
+          </button>
+          <button className="text-button" onClick={() => void onDelete()}>
+            Delete
+          </button>
         </div>
       </div>
 
@@ -137,9 +148,17 @@ function SegmentCard({
       </div>
 
       <div className="segment-card-footer">
-        {segment.description ? <div className="notice">{segment.description}</div> : <span className="muted">Conditions are saved explicitly.</span>}
+        {segment.description ? (
+          <div className="notice">{segment.description}</div>
+        ) : (
+          <span className="muted">Conditions are saved explicitly.</span>
+        )}
         {dirty && (
-          <button className="button button-small button-primary" disabled={saving} onClick={() => void save()}>
+          <button
+            className="button button-small button-primary"
+            disabled={saving}
+            onClick={() => void save()}
+          >
             {saving ? "Saving…" : "Save conditions"}
           </button>
         )}
@@ -217,7 +236,9 @@ export function SegmentsView() {
         description: form.get("description") || null,
       });
       setEditing(null);
-      setSegments((items) => items.map((item) => item.id === updated.id ? { ...item, ...updated } : item));
+      setSegments((items) =>
+        items.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save segment");
     } finally {
@@ -228,7 +249,7 @@ export function SegmentsView() {
   async function changeConditions(segment: Segment, conditions: Condition[]) {
     try {
       const updated = await api.patch<Segment>(`/segments/${segment.id}`, { conditions });
-      setSegments((items) => items.map((item) => item.id === updated.id ? updated : item));
+      setSegments((items) => items.map((item) => (item.id === updated.id ? updated : item)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save conditions");
       throw err;
@@ -253,10 +274,20 @@ export function SegmentsView() {
           <h1>Segments</h1>
           <p>Reusable user cohorts keep targeting rules readable and consistent across flags.</p>
         </div>
-        <button className="button button-dark" disabled={!activeProjectId} onClick={() => setShowCreate(true)}>+ New segment</button>
+        <button
+          className="button button-dark"
+          disabled={!activeProjectId}
+          onClick={() => setShowCreate(true)}
+        >
+          + New segment
+        </button>
       </div>
 
-      {error && <div className="error-box" style={{ marginBottom: 12 }} role="alert">{error}</div>}
+      {error && (
+        <div className="error-box" style={{ marginBottom: 12 }} role="alert">
+          {error}
+        </div>
+      )}
 
       {!activeProjectId ? (
         <div className="panel">
@@ -283,7 +314,9 @@ export function SegmentsView() {
               <div className="empty-state">
                 <h3>No audience segments</h3>
                 <p>Create segments once and reference them from multiple flag rules.</p>
-                <button className="button button-primary" onClick={() => setShowCreate(true)}>Create segment</button>
+                <button className="button button-primary" onClick={() => setShowCreate(true)}>
+                  Create segment
+                </button>
               </div>
             </div>
           )}
@@ -291,12 +324,16 @@ export function SegmentsView() {
       )}
 
       {(showCreate || editing) && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) {
-            setShowCreate(false);
-            setEditing(null);
-          }
-        }}>
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setShowCreate(false);
+              setEditing(null);
+            }
+          }}
+        >
           <div className="modal">
             {showCreate && (
               <>
@@ -305,17 +342,49 @@ export function SegmentsView() {
                     <h2>Create segment</h2>
                     <p>Define the audience once and reuse it in targeting rules.</p>
                   </div>
-                  <button className="icon-button" type="button" aria-label="Close" onClick={() => setShowCreate(false)}>×</button>
+                  <button
+                    className="icon-button"
+                    type="button"
+                    aria-label="Close"
+                    onClick={() => setShowCreate(false)}
+                  >
+                    ×
+                  </button>
                 </div>
                 <form onSubmit={create}>
                   <div className="modal-body form-grid">
-                    <div className="field"><label>Key</label><input name="key" required pattern="[a-z0-9][a-z0-9_-]*" placeholder="beta-users" /></div>
-                    <div className="field"><label>Name</label><input name="name" required minLength={2} placeholder="Beta users" /></div>
-                    <div className="field"><label>Description</label><textarea name="description" placeholder="Users enrolled in the private beta" /></div>
+                    <div className="field">
+                      <label>Key</label>
+                      <input
+                        name="key"
+                        required
+                        pattern="[a-z0-9][a-z0-9_-]*"
+                        placeholder="beta-users"
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Name</label>
+                      <input name="name" required minLength={2} placeholder="Beta users" />
+                    </div>
+                    <div className="field">
+                      <label>Description</label>
+                      <textarea
+                        name="description"
+                        placeholder="Users enrolled in the private beta"
+                      />
+                    </div>
                   </div>
                   <div className="modal-footer">
-                    <button className="button button-ghost" type="button" onClick={() => setShowCreate(false)}>Cancel</button>
-                    <button className="button button-primary" disabled={saving}>{saving ? "Creating…" : "Create segment"}</button>
+                    <button
+                      className="button button-ghost"
+                      type="button"
+                      onClick={() => setShowCreate(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button className="button button-primary" disabled={saving}>
+                      {saving ? "Creating…" : "Create segment"}
+                    </button>
                   </div>
                 </form>
               </>
@@ -328,16 +397,37 @@ export function SegmentsView() {
                     <h2>Edit {editing.key}</h2>
                     <p>Change the label and description without changing its key.</p>
                   </div>
-                  <button className="icon-button" type="button" aria-label="Close" onClick={() => setEditing(null)}>×</button>
+                  <button
+                    className="icon-button"
+                    type="button"
+                    aria-label="Close"
+                    onClick={() => setEditing(null)}
+                  >
+                    ×
+                  </button>
                 </div>
                 <form onSubmit={update}>
                   <div className="modal-body form-grid">
-                    <div className="field"><label>Name</label><input name="name" required defaultValue={editing.name} /></div>
-                    <div className="field"><label>Description</label><textarea name="description" defaultValue={editing.description || ""} /></div>
+                    <div className="field">
+                      <label>Name</label>
+                      <input name="name" required defaultValue={editing.name} />
+                    </div>
+                    <div className="field">
+                      <label>Description</label>
+                      <textarea name="description" defaultValue={editing.description || ""} />
+                    </div>
                   </div>
                   <div className="modal-footer">
-                    <button className="button button-ghost" type="button" onClick={() => setEditing(null)}>Cancel</button>
-                    <button className="button button-primary" disabled={saving}>{saving ? "Saving…" : "Save changes"}</button>
+                    <button
+                      className="button button-ghost"
+                      type="button"
+                      onClick={() => setEditing(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button className="button button-primary" disabled={saving}>
+                      {saving ? "Saving…" : "Save changes"}
+                    </button>
                   </div>
                 </form>
               </>

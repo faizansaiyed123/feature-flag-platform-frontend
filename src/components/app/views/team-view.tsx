@@ -74,7 +74,11 @@ export function TeamView() {
         </div>
       </div>
 
-      {error && <div className="error-box" style={{ marginBottom: 12 }} role="alert">{error}</div>}
+      {error && (
+        <div className="error-box" style={{ marginBottom: 12 }} role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="panel">
         {loading ? (
@@ -82,7 +86,14 @@ export function TeamView() {
         ) : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Member</th><th>Role</th><th>Access</th><th /></tr></thead>
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Role</th>
+                  <th>Access</th>
+                  <th />
+                </tr>
+              </thead>
               <tbody>
                 {members.map((member) => (
                   <tr key={member.id}>
@@ -95,8 +106,12 @@ export function TeamView() {
                         </div>
                       </div>
                     </td>
-                    <td><span className="badge">{member.role}</span></td>
-                    <td>{member.role === "viewer" ? "Read-only" : "Can manage project controls"}</td>
+                    <td>
+                      <span className="badge">{member.role}</span>
+                    </td>
+                    <td>
+                      {member.role === "viewer" ? "Read-only" : "Can manage project controls"}
+                    </td>
                     <td>
                       {member.user_id === user?.id && member.role === "owner" ? (
                         <span className="muted">You · owner</span>
@@ -110,11 +125,22 @@ export function TeamView() {
                             className="text-button"
                             aria-label={`Change role for ${member.email}`}
                             value={member.role}
-                            onChange={(event) => void changeRole(member, event.target.value as Role)}
+                            onChange={(event) =>
+                              void changeRole(member, event.target.value as Role)
+                            }
                           >
-                            {(canManageOwners ? roles : roles.filter((role) => role !== "owner")).map((role) => <option key={role} value={role}>{role}</option>)}
+                            {(canManageOwners
+                              ? roles
+                              : roles.filter((role) => role !== "owner")
+                            ).map((role) => (
+                              <option key={role} value={role}>
+                                {role}
+                              </option>
+                            ))}
                           </select>
-                          <button className="text-button" onClick={() => void remove(member)}>Remove</button>
+                          <button className="text-button" onClick={() => void remove(member)}>
+                            Remove
+                          </button>
                         </div>
                       )}
                     </td>
@@ -135,11 +161,13 @@ export function TeamView() {
 
       {!canManageMembers && (
         <div className="notice" style={{ marginTop: 12 }}>
-          You have read-only access to this workspace. Only owners and admins can change member roles or remove members.
+          You have read-only access to this workspace. Only owners and admins can change member
+          roles or remove members.
         </div>
       )}
       <div className="notice" style={{ marginTop: 12 }}>
-        Invitation delivery is intentionally not faked: membership changes only act on accounts already created in the platform.
+        Invitation delivery is intentionally not faked: membership changes only act on accounts
+        already created in the platform.
       </div>
     </div>
   );

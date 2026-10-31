@@ -103,12 +103,19 @@ export function SimulatorView() {
         <div>
           <p className="eyebrow">Deterministic preview</p>
           <h1>Rollout simulator</h1>
-          <p>Test real evaluation logic against representative users before changing production behavior.</p>
+          <p>
+            Test real evaluation logic against representative users before changing production
+            behavior.
+          </p>
         </div>
         <span className="badge">No SDK key required</span>
       </div>
 
-      {error && <div className="error-box" style={{ marginBottom: 12 }} role="alert">{error}</div>}
+      {error && (
+        <div className="error-box" style={{ marginBottom: 12 }} role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="simulator-grid">
         <div className="panel">
@@ -167,28 +174,44 @@ export function SimulatorView() {
             <div className="panel-head">
               <strong>Decision trace</strong>
               <span className="muted">
-                {results ? `${results.results.length} users · v${results.version}` : "Waiting for a run"}
+                {results
+                  ? `${results.results.length} users · v${results.version}`
+                  : "Waiting for a run"}
               </span>
             </div>
             <div className="panel-body">
               {!results ? (
                 <div className="empty-state">
                   <h3>See every user decision</h3>
-                  <p>The simulator uses the same conditions, segments and deterministic rollout bucket used by the SDK evaluation endpoint.</p>
+                  <p>
+                    The simulator uses the same conditions, segments and deterministic rollout
+                    bucket used by the SDK evaluation endpoint.
+                  </p>
                 </div>
               ) : (
                 <div className="table-wrap">
                   <table>
                     <thead>
-                      <tr><th>User</th><th>Value</th><th>Reason</th><th>Matched rule</th></tr>
+                      <tr>
+                        <th>User</th>
+                        <th>Value</th>
+                        <th>Reason</th>
+                        <th>Matched rule</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {results.results.map((row, index) => (
                         <tr key={`${row.user_id}-${index}`}>
-                          <td><strong>{row.user_id || "anonymous"}</strong></td>
-                          <td><code>{displayJson(row.value)}</code></td>
                           <td>
-                            <span className={`badge ${row.reason === "targeting_rule" || row.reason === "rollout" ? "live" : ""}`}>
+                            <strong>{row.user_id || "anonymous"}</strong>
+                          </td>
+                          <td>
+                            <code>{displayJson(row.value)}</code>
+                          </td>
+                          <td>
+                            <span
+                              className={`badge ${row.reason === "targeting_rule" || row.reason === "rollout" ? "live" : ""}`}
+                            >
                               {row.reason}
                             </span>
                           </td>
@@ -204,7 +227,8 @@ export function SimulatorView() {
 
           {activeProject && (
             <div className="notice" style={{ marginTop: 12 }}>
-              Project <strong>{activeProject.key}</strong> · evaluations remain server-side and reuse the production decision engine.
+              Project <strong>{activeProject.key}</strong> · evaluations remain server-side and
+              reuse the production decision engine.
             </div>
           )}
         </div>
