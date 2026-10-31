@@ -48,7 +48,11 @@ export function AuditView() {
         </div>
       </div>
 
-      {error && <div className="error-box" style={{ marginBottom: 12 }} role="alert">{error}</div>}
+      {error && (
+        <div className="error-box" style={{ marginBottom: 12 }} role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="panel">
         {loading ? (
@@ -61,7 +65,8 @@ export function AuditView() {
                 <div>
                   <div className="audit-action">{log.action}</div>
                   <div className="audit-detail">
-                    {log.entity_type}{log.entity_id ? ` · ${log.entity_id}` : ""}
+                    {log.entity_type}
+                    {log.entity_id ? ` · ${log.entity_id}` : ""}
                   </div>
                 </div>
                 <code className="flag-key">{displayJson(log.details)}</code>

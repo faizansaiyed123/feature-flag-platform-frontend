@@ -75,7 +75,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setProjects(ps);
 
-        const projectId = ps.find((project) => project.id === saved("ffp:project"))?.id || ps[0]?.id || "";
+        const projectId =
+          ps.find((project) => project.id === saved("ffp:project"))?.id || ps[0]?.id || "";
         setProject(projectId);
         remember("ffp:project", projectId);
 
@@ -198,7 +199,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     activeEnvironmentId,
     activeOrganization: organizations.find((org) => org.id === activeOrganizationId) || null,
     activeProject: projects.find((project) => project.id === activeProjectId) || null,
-    activeEnvironment: environments.find((environment) => environment.id === activeEnvironmentId) || null,
+    activeEnvironment:
+      environments.find((environment) => environment.id === activeEnvironmentId) || null,
     error,
     setActiveOrganizationId,
     setActiveProjectId,

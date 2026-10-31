@@ -86,7 +86,9 @@ export function ConsoleShell({ children }: { children: React.ReactNode }) {
               disabled={!organizations.length}
             >
               {organizations.map((org) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
               ))}
             </select>
           </div>
@@ -94,7 +96,8 @@ export function ConsoleShell({ children }: { children: React.ReactNode }) {
           <div className="nav-section-label">Control plane</div>
           <nav className="side-nav" id="workspace-navigation" aria-label="Control plane">
             {navigation.map((item) => {
-              const active = pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href));
+              const active =
+                pathname === item.href || (item.href !== "/app" && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
@@ -116,7 +119,9 @@ export function ConsoleShell({ children }: { children: React.ReactNode }) {
               <strong>{user.display_name}</strong>
               <span>{user.email}</span>
             </div>
-            <button className="logout-button" aria-label="Sign out" onClick={() => void logout()}>↗</button>
+            <button className="logout-button" aria-label="Sign out" onClick={() => void logout()}>
+              ↗
+            </button>
           </div>
         </aside>
 
@@ -138,7 +143,8 @@ export function ConsoleShell({ children }: { children: React.ReactNode }) {
                 <option value="">Select…</option>
                 {environments.map((env) => (
                   <option key={env.id} value={env.id}>
-                    {env.name}{env.is_protected ? " · protected" : ""}
+                    {env.name}
+                    {env.is_protected ? " · protected" : ""}
                   </option>
                 ))}
               </select>
@@ -149,7 +155,11 @@ export function ConsoleShell({ children }: { children: React.ReactNode }) {
                 aria-label="Project"
               >
                 <option value="">Project…</option>
-                {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
               </select>
             </div>
           </header>
@@ -157,7 +167,11 @@ export function ConsoleShell({ children }: { children: React.ReactNode }) {
           {error && (
             <div className="workspace-alert" role="alert">
               <span>{error}</span>
-              <button type="button" className="text-button" onClick={() => window.location.reload()}>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => window.location.reload()}
+              >
                 Reload
               </button>
             </div>

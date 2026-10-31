@@ -73,7 +73,10 @@ export function ApiView() {
         <div>
           <p className="eyebrow">Developer access</p>
           <h1>API & SDK</h1>
-          <p>Environment-scoped credentials and the public evaluation contract for application integration.</p>
+          <p>
+            Environment-scoped credentials and the public evaluation contract for application
+            integration.
+          </p>
         </div>
         <button
           className="button button-dark"
@@ -84,12 +87,18 @@ export function ApiView() {
         </button>
       </div>
 
-      {error && <div className="error-box" style={{ marginBottom: 12 }} role="alert">{error}</div>}
+      {error && (
+        <div className="error-box" style={{ marginBottom: 12 }} role="alert">
+          {error}
+        </div>
+      )}
 
       {newKey && (
         <div className="key-reveal">
           <strong>New SDK key — copy it now</strong>
-          <div><code>{newKey}</code></div>
+          <div>
+            <code>{newKey}</code>
+          </div>
         </div>
       )}
 
@@ -102,9 +111,9 @@ export function ApiView() {
           <div className="panel-body">
             <pre className="code-block">{code}</pre>
             <p className="muted">
-              The evaluation endpoint is authenticated by the environment SDK key. Keys are
-              stored as SHA-256 hashes and only the one-time secret is returned during creation
-              or rotation.
+              The evaluation endpoint is authenticated by the environment SDK key. Keys are stored
+              as SHA-256 hashes and only the one-time secret is returned during creation or
+              rotation.
             </p>
             <p className="muted">Console origin: {origin}</p>
           </div>
@@ -113,7 +122,9 @@ export function ApiView() {
         <div className="panel">
           <div className="panel-head">
             <strong>{activeEnvironment?.name || "Environment"} keys</strong>
-            <span className="muted">{keys.length} record{keys.length === 1 ? "" : "s"}</span>
+            <span className="muted">
+              {keys.length} record{keys.length === 1 ? "" : "s"}
+            </span>
           </div>
           <div className="panel-body">
             {loading ? (
@@ -124,7 +135,9 @@ export function ApiView() {
                   <div className="quick-action" key={key.id} style={{ marginBottom: 8 }}>
                     <div>
                       <strong>{key.name}</strong>
-                      <span>{key.key_prefix} · {key.revoked_at ? "revoked" : "active"}</span>
+                      <span>
+                        {key.key_prefix} · {key.revoked_at ? "revoked" : "active"}
+                      </span>
                     </div>
                     <span className={`badge ${key.revoked_at ? "" : "live"}`}>
                       {key.revoked_at ? "revoked" : "active"}
@@ -132,7 +145,9 @@ export function ApiView() {
                   </div>
                 ))}
                 {!keys.length && (
-                  <div className="notice">Create an environment in Settings to issue its first SDK key.</div>
+                  <div className="notice">
+                    Create an environment in Settings to issue its first SDK key.
+                  </div>
                 )}
               </>
             )}

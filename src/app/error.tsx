@@ -19,7 +19,9 @@ export default function ErrorPage({
         <div className="eyebrow">Something went wrong</div>
         <h1>We couldn’t load this page.</h1>
         <p>Try again. If the problem continues, check the API status and application logs.</p>
-        <button className="button button-dark" onClick={() => reset()}>Try again</button>
+        <button className="button button-dark" onClick={() => reset()}>
+          Try again
+        </button>
       </div>
     </main>
   );

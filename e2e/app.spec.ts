@@ -34,7 +34,9 @@ async function takeScreenshot(page: import("@playwright/test").Page, name: strin
   });
 }
 
-test("real product lifecycle: signup → project → environment → flag → segment → rule → evaluation", async ({ page }) => {
+test("real product lifecycle: signup → project → environment → flag → segment → rule → evaluation", async ({
+  page,
+}) => {
   const apiFailures = watchApiFailures(page);
 
   await page.goto("/signup");
@@ -46,7 +48,8 @@ test("real product lifecycle: signup → project → environment → flag → se
   await page.getByLabel("Password").fill(credentials.password);
 
   const signupResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/api/v1/auth/signup") && response.request().method() === "POST",
+    (response) =>
+      response.url().endsWith("/api/v1/auth/signup") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Create workspace" }).click();
   expect((await signupResponse).status()).toBe(201);
@@ -59,10 +62,14 @@ test("real product lifecycle: signup → project → environment → flag → se
   const projectForm = page.locator("form").filter({ hasText: "New project" });
   await projectForm.locator('input[name="name"]').fill("Checkout Platform");
   await projectForm.locator('input[name="key"]').fill("checkout");
-  await projectForm.locator('textarea[name="description"]').fill("Release controls for checkout behavior");
+  await projectForm
+    .locator('textarea[name="description"]')
+    .fill("Release controls for checkout behavior");
 
   const projectResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/organizations\/[^/]+\/projects$/.test(response.url()) && response.request().method() === "POST",
+    (response) =>
+      /\/api\/v1\/organizations\/[^/]+\/projects$/.test(response.url()) &&
+      response.request().method() === "POST",
   );
   await projectForm.getByRole("button", { name: "Create project" }).click();
   const projectPayload = await (await projectResponse).json();
@@ -77,7 +84,11 @@ test("real product lifecycle: signup → project → environment → flag → se
   await expect(page.getByText("Store this SDK key", { exact: false })).toBeVisible();
   sdkKey = (await page.locator(".key-reveal code").innerText()).trim();
   expect(sdkKey).toMatch(/^ffp_/);
-  environmentId = await page.locator('#environment-select option:not([value=""])').first().getAttribute("value") || "";
+  environmentId =
+    (await page
+      .locator('#environment-select option:not([value=""])')
+      .first()
+      .getAttribute("value")) || "";
   expect(environmentId).toBeTruthy();
   await takeScreenshot(page, "03-settings-project-environment");
 
@@ -89,9 +100,15 @@ test("real product lifecycle: signup → project → environment → flag → se
   await page.locator('textarea[name="description"]').fill("Users eligible for the checkout beta");
 
   const segmentCreateResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/projects\/[^/]+\/segments$/.test(response.url()) && response.request().method() === "POST",
+    (response) =>
+      /\/api\/v1\/projects\/[^/]+\/segments$/.test(response.url()) &&
+      response.request().method() === "POST",
   );
-  await page.locator("form").filter({ hasText: "Create segment" }).getByRole("button", { name: "Create segment" }).click();
+  await page
+    .locator("form")
+    .filter({ hasText: "Create segment" })
+    .getByRole("button", { name: "Create segment" })
+    .click();
   expect((await segmentCreateResponse).status()).toBe(201);
 
   const segmentCard = page.locator(".segment-card").filter({ hasText: segmentKey });
@@ -102,13 +119,19 @@ test("real product lifecycle: signup → project → environment → flag → se
   await segmentCard.getByLabel("Condition 1 value").fill("pro");
 
   const segmentUpdateResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/segments\/[^/]+$/.test(response.url()) && response.request().method() === "PATCH",
+    (response) =>
+      /\/api\/v1\/segments\/[^/]+$/.test(response.url()) && response.request().method() === "PATCH",
   );
   await segmentCard.getByRole("button", { name: "Save conditions" }).click();
   expect((await segmentUpdateResponse).status()).toBe(200);
 
   await page.reload();
-  await expect(page.locator(".segment-card").filter({ hasText: segmentKey }).getByLabel("Condition 1 attribute")).toHaveValue("plan");
+  await expect(
+    page
+      .locator(".segment-card")
+      .filter({ hasText: segmentKey })
+      .getByLabel("Condition 1 attribute"),
+  ).toHaveValue("plan");
   await takeScreenshot(page, "04-segments-targeting-audience");
 
   await page.goto("/app/flags");
@@ -116,19 +139,25 @@ test("real product lifecycle: signup → project → environment → flag → se
   await page.getByRole("button", { name: "+ New flag" }).click();
   await page.locator('input[name="key"]').fill(flagKey);
   await page.locator('input[name="name"]').fill("Checkout redesign");
-  await page.locator('textarea[name="description"]').fill("Controlled release of the new checkout experience");
+  await page
+    .locator('textarea[name="description"]')
+    .fill("Controlled release of the new checkout experience");
   await page.locator('select[name="flag_type"]').selectOption("boolean");
   await page.locator('input[name="default_value"]').fill("false");
 
   const flagCreateResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/projects\/[^/]+\/flags$/.test(response.url()) && response.request().method() === "POST",
+    (response) =>
+      /\/api\/v1\/projects\/[^/]+\/flags$/.test(response.url()) &&
+      response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Create flag" }).click();
   expect((await flagCreateResponse).status()).toBe(201);
   await expect(page.getByText(flagKey, { exact: true })).toBeVisible();
 
   const toggleResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/flags\/[^/]+\/environments\/[^/]+$/.test(response.url()) && response.request().method() === "PATCH",
+    (response) =>
+      /\/api\/v1\/flags\/[^/]+\/environments\/[^/]+$/.test(response.url()) &&
+      response.request().method() === "PATCH",
   );
   await page.getByRole("button", { name: `Toggle ${flagKey}` }).click();
   expect((await toggleResponse).status()).toBe(200);
@@ -137,7 +166,9 @@ test("real product lifecycle: signup → project → environment → flag → se
   await targetingPanel.getByRole("button", { name: "Configure" }).click();
 
   const addRuleResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/flags\/[^/]+\/environments\/[^/]+\/rules$/.test(response.url()) && response.request().method() === "POST",
+    (response) =>
+      /\/api\/v1\/flags\/[^/]+\/environments\/[^/]+\/rules$/.test(response.url()) &&
+      response.request().method() === "POST",
   );
   await targetingPanel.getByRole("button", { name: /\+ Rule/ }).click();
   expect((await addRuleResponse).status()).toBe(201);
@@ -149,7 +180,8 @@ test("real product lifecycle: signup → project → environment → flag → se
   await ruleCard.getByLabel("Segments").selectOption(segmentKey);
 
   const ruleSaveResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/rules\/[^/]+$/.test(response.url()) && response.request().method() === "PATCH",
+    (response) =>
+      /\/api\/v1\/rules\/[^/]+$/.test(response.url()) && response.request().method() === "PATCH",
   );
   await ruleCard.getByRole("button", { name: "Save rule" }).click();
   expect((await ruleSaveResponse).status()).toBe(200);
@@ -158,16 +190,26 @@ test("real product lifecycle: signup → project → environment → flag → se
 
   await page.goto("/app/simulator");
   await expect(page.getByRole("heading", { name: "Rollout simulator" })).toBeVisible();
-  await page.locator(".field").filter({ hasText: "Feature flag" }).locator("select").selectOption(flagKey);
-  await page.locator(".field").filter({ hasText: "Users JSON" }).locator("textarea").fill(
-    JSON.stringify([
-      { user_id: "e2e-pro", attributes: { plan: "pro", country: "IN" } },
-      { user_id: "e2e-free", attributes: { plan: "free", country: "IN" } },
-    ]),
-  );
+  await page
+    .locator(".field")
+    .filter({ hasText: "Feature flag" })
+    .locator("select")
+    .selectOption(flagKey);
+  await page
+    .locator(".field")
+    .filter({ hasText: "Users JSON" })
+    .locator("textarea")
+    .fill(
+      JSON.stringify([
+        { user_id: "e2e-pro", attributes: { plan: "pro", country: "IN" } },
+        { user_id: "e2e-free", attributes: { plan: "free", country: "IN" } },
+      ]),
+    );
 
   const simulationResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/projects\/[^/]+\/simulate$/.test(response.url()) && response.request().method() === "POST",
+    (response) =>
+      /\/api\/v1\/projects\/[^/]+\/simulate$/.test(response.url()) &&
+      response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Run simulation" }).click();
   const simulationPayload = await (await simulationResponse).json();
@@ -184,7 +226,9 @@ test("real product lifecycle: signup → project → environment → flag → se
   await page.goto("/app/api");
   await expect(page.getByRole("heading", { name: "API & SDK" })).toBeVisible();
   const rotateResponse = page.waitForResponse(
-    (response) => /\/api\/v1\/environments\/[^/]+\/keys\/rotate$/.test(response.url()) && response.request().method() === "POST",
+    (response) =>
+      /\/api\/v1\/environments\/[^/]+\/keys\/rotate$/.test(response.url()) &&
+      response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Rotate SDK key" }).click();
   const rotatePayload = await (await rotateResponse).json();
@@ -201,7 +245,11 @@ test("real product lifecycle: signup → project → environment → flag → se
   );
   expect(externalEvaluation.status()).toBe(200);
   const evaluationPayload = await externalEvaluation.json();
-  expect(evaluationPayload).toMatchObject({ flag_key: flagKey, value: true, reason: "targeting_rule" });
+  expect(evaluationPayload).toMatchObject({
+    flag_key: flagKey,
+    value: true,
+    reason: "targeting_rule",
+  });
   await takeScreenshot(page, "07-api-and-sdk");
 
   await page.goto("/app/audit");
@@ -232,7 +280,9 @@ test("real product lifecycle: signup → project → environment → flag → se
   expect(apiFailures).toEqual([]);
 });
 
-test("authenticated session, console routes, and mobile navigation stay usable", async ({ browser }) => {
+test("authenticated session, console routes, and mobile navigation stay usable", async ({
+  browser,
+}) => {
   const context = await browser.newContext();
   const page = await context.newPage();
   const apiFailures = watchApiFailures(page);
@@ -241,21 +291,62 @@ test("authenticated session, console routes, and mobile navigation stay usable",
   await page.getByLabel("Email").fill(credentials.email);
   await page.getByLabel("Password").fill(credentials.password);
   const loginResponse = page.waitForResponse(
-    (response) => response.url().endsWith("/api/v1/auth/login") && response.request().method() === "POST",
+    (response) =>
+      response.url().endsWith("/api/v1/auth/login") && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Sign in" }).click();
   expect((await loginResponse).status()).toBe(200);
   await expect(page).toHaveURL(/\/app$/);
 
   const routes = [
-    { path: "/app", heading: "Checkout Platform", api: /\/api\/v1\/projects\/[^/]+\/(overview|flags)/, image: "11-route-overview" },
-    { path: "/app/flags", heading: "Feature flags", api: /\/api\/v1\/projects\/[^/]+\/(flags|segments)/, image: "12-route-flags" },
-    { path: "/app/segments", heading: "Segments", api: /\/api\/v1\/projects\/[^/]+\/segments/, image: "13-route-segments" },
-    { path: "/app/simulator", heading: "Rollout simulator", api: /\/api\/v1\/projects\/[^/]+\/flags/, image: "14-route-simulator" },
-    { path: "/app/team", heading: "Team access", api: /\/api\/v1\/organizations\/[^/]+\/members/, image: "15-route-team" },
-    { path: "/app/audit", heading: "Audit log", api: /\/api\/v1\/projects\/[^/]+\/audit-logs/, image: "16-route-audit" },
-    { path: "/app/api", heading: "API & SDK", api: /\/api\/v1\/environments\/[^/]+\/keys/, image: "17-route-api" },
-    { path: "/app/settings", heading: "Settings", api: /\/api\/v1\/(organizations\/[^/]+\/projects|projects\/[^/]+\/environments)/, image: "18-route-settings" },
+    {
+      path: "/app",
+      heading: "Checkout Platform",
+      api: /\/api\/v1\/projects\/[^/]+\/(overview|flags)/,
+      image: "11-route-overview",
+    },
+    {
+      path: "/app/flags",
+      heading: "Feature flags",
+      api: /\/api\/v1\/projects\/[^/]+\/(flags|segments)/,
+      image: "12-route-flags",
+    },
+    {
+      path: "/app/segments",
+      heading: "Segments",
+      api: /\/api\/v1\/projects\/[^/]+\/segments/,
+      image: "13-route-segments",
+    },
+    {
+      path: "/app/simulator",
+      heading: "Rollout simulator",
+      api: /\/api\/v1\/projects\/[^/]+\/flags/,
+      image: "14-route-simulator",
+    },
+    {
+      path: "/app/team",
+      heading: "Team access",
+      api: /\/api\/v1\/organizations\/[^/]+\/members/,
+      image: "15-route-team",
+    },
+    {
+      path: "/app/audit",
+      heading: "Audit log",
+      api: /\/api\/v1\/projects\/[^/]+\/audit-logs/,
+      image: "16-route-audit",
+    },
+    {
+      path: "/app/api",
+      heading: "API & SDK",
+      api: /\/api\/v1\/environments\/[^/]+\/keys/,
+      image: "17-route-api",
+    },
+    {
+      path: "/app/settings",
+      heading: "Settings",
+      api: /\/api\/v1\/(organizations\/[^/]+\/projects|projects\/[^/]+\/environments)/,
+      image: "18-route-settings",
+    },
   ];
 
   for (const route of routes) {
